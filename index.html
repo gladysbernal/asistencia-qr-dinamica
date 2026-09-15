@@ -54,8 +54,8 @@
         <option value="3|3">3.º — Grupo 3</option>
       </select>
       <div class="field">
-        <label for="admin-key">Clave privada del docente</label>
-        <input id="admin-key" type="password" autocomplete="current-password" placeholder="Escribe la clave para iniciar">
+        <label for="admin-key">PIN del docente (6 dígitos)</label>
+        <input id="admin-key" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••">
       </div>
       <div class="actions">
         <button id="start-session">Iniciar 60 segundos</button>
@@ -115,10 +115,8 @@
   const el = (id) => document.getElementById(id);
 
   function adminKey() {
-    const key = el("admin-key").value.trim() || sessionStorage.getItem("asistencia-admin-key") || "";
-    if (!key) throw new Error("Se necesita la clave privada del docente.");
-    sessionStorage.setItem("asistencia-admin-key", key);
-    el("admin-key").value = key;
+    const key = el("admin-key").value.trim();
+    if (!/^\d{6}$/.test(key)) throw new Error("Escribe el PIN docente de 6 dígitos.");
     return key;
   }
 
