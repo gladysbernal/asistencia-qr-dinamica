@@ -33,6 +33,8 @@
     .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
     ul { padding-left: 22px; max-height: 230px; overflow: auto; }
     .demo { background: #fff4cc; border: 1px solid #e2bd35; padding: 9px; border-radius: 8px; }
+    .field { display: grid; gap: 6px; margin-top: 12px; }
+    .field input { width: 100%; border: 1px solid #b9c3d0; background: #fff; }
   </style>
 </head>
 <body>
@@ -51,6 +53,10 @@
         <option value="1|5">1.º — Grupo 5</option>
         <option value="3|3">3.º — Grupo 3</option>
       </select>
+      <div class="field">
+        <label for="admin-key">Clave privada del docente</label>
+        <input id="admin-key" type="password" autocomplete="current-password" placeholder="Escribe la clave para iniciar">
+      </div>
       <div class="actions">
         <button id="start-session">Iniciar 60 segundos</button>
         <button id="stop-session" class="danger" disabled>Cerrar sesión</button>
@@ -109,13 +115,11 @@
   const el = (id) => document.getElementById(id);
 
   function adminKey() {
-    let key = sessionStorage.getItem("asistencia-admin-key") || "";
-    if (!key) {
-      key = window.prompt("Introduce la clave privada del docente:") || "";
-      if (key) sessionStorage.setItem("asistencia-admin-key", key.trim());
-    }
+    const key = el("admin-key").value.trim() || sessionStorage.getItem("asistencia-admin-key") || "";
     if (!key) throw new Error("Se necesita la clave privada del docente.");
-    return key.trim();
+    sessionStorage.setItem("asistencia-admin-key", key);
+    el("admin-key").value = key;
+    return key;
   }
 
   function demoRecords() {
