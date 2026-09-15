@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registrar mi asistencia</title>
+  <style>
+    :root { font-family: Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f6fa; color: #172033; }
+    main { width: min(470px,92vw); margin: 36px auto; background: white; padding: 24px; border-radius: 16px; box-shadow: 0 5px 20px #19324d16; }
+    label { display: block; font-weight: 700; margin: 18px 0 7px; }
+    input, button { width: 100%; font: inherit; padding: 14px; border-radius: 9px; }
+    input { border: 1px solid #aab4c0; }
+    button { margin-top: 13px; border: 0; color: white; background: #1769e0; font-weight: 800; }
+    button:disabled { opacity: .5; }
+    #status { min-height: 30px; margin-top: 18px; font-weight: 800; }
+    .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Mi asistencia</h1>
+  <p>Confirma tu número de cuenta para registrar esta sesión.</p>
+  <label for="account">Número de cuenta</label>
+  <input id="account" inputmode="numeric" autocomplete="off">
+  <button id="register">Registrar asistencia</button>
+  <p id="status"></p>
+</main>
+<script>
+  const CONFIG = {
+    MODO_DEMO: false,
+    API_URL: "https://script.google.com/macros/s/AKfycbwC_u-NtgAxL74DRrmT5GHKPhPa8olgyas0zSdGV0_A_q2vPeru-YQagsX1dQNPg2dl/exec"
+  };
+  const query = new URLSearchParams(location.search);
+  const account = document.getElementById("account");
+  const button = document.getElementById("register");
+  const status = document.getElementById("status");
+  account.value = localStorage.getItem("asistencia-numero-cuenta") || "";
+
+  async function register() {
+    const codigo = account.value.trim();
+    const sessionId = query.get("sessionId");
+    const slot = query.get("slot");
+    const signature = query.get("signature");
+    if (!sessionId || !slot || !signature) return show("El QR no contiene una sesión válida.", "error");
+    if (!codigo) return show("Escribe tu número de cuenta.", "warn");
+    button.disabled = true;
+    show("Registrando…", "");
+    try {
+      let result;
+      if (CONFIG.MODO_DEMO) {
+        const records = JSON.parse(localStorage.getItem("asistencia-demo-records") || "[]");
+        const duplicate = records.some((r) => r.sessionId === sessionId && r.codigo === codigo);
+        if (!duplicate) {
+          records.push({ sessionId, codigo, nombre: `Alumno ${codigo}`, method: "QR_PROYECTADO", time: new Date().toLocaleTimeString() });
+          localStorage.setItem("asistencia-demo-records", JSON.stringify(records));
+        }
+        result = { ok: true, duplicate, message: duplicate ? "Asistencia previamente registrada." : "Asistencia registrada correctamente." };
+      } else {
+        const url = new URL(CONFIG.API_URL);
+        Object.entries({ action: "register", sessionId, slot, signature, codigo }).forEach(([k,v]) => url.searchParams.set(k,v));
+        const response = await fetch(url, { cache: "no-store" });
+        result = await response.json();
+        if (!result.ok) throw new Error(result.message);
+      }
+      localStorage.setItem("asistencia-numero-cuenta", codigo);
+      show(`${result.duplicate ? "⚠️" : "✅"} ${result.message}`, result.duplicate ? "warn" : "ok");
+    } catch (error) {
+      show(error.message || "No fue posible registrar la asistencia.", "error");
+      button.disabled = false;
+    }
+  }
+
+  function show(message, type) {
+    status.textContent = message;
+    status.className = type;
+  }
+  button.addEventListener("click", register);
+</script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Asistencia — docente</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f6fa; color: #172033; }
+    main { width: min(1050px, 94vw); margin: 24px auto; }
+    h1 { margin-bottom: 6px; }
+    .muted { color: #5f6b7a; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(310px,1fr)); gap: 18px; }
+    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px #19324d16; }
+    button, input, select { font: inherit; padding: 11px 14px; border-radius: 9px; }
+    button { border: 0; background: #1769e0; color: white; font-weight: 700; cursor: pointer; }
+    button.secondary { background: #526173; }
+    button.danger { background: #a92331; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin: 12px 0; }
+    #qr { min-height: 282px; display: grid; place-items: center; margin: 12px auto; }
+    #timer { font-size: 34px; font-weight: 800; }
+    #count { font-size: 26px; font-weight: 800; color: #1769e0; }
+    #reader-wrap { position: relative; width: 100%; overflow: hidden; border-radius: 12px; background: #111; }
+    #reader { width: 100%; min-height: 260px; }
+    .guides { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; }
+    .qr-guide { width: min(72vw, 250px); aspect-ratio: 1; border: 3px solid #35d07f; border-radius: 16px; display: grid; place-items: center; }
+    .bar-guide { width: 92%; aspect-ratio: 4/1; border: 3px solid #3aa7ff; border-radius: 8px; }
+    .status { min-height: 28px; font-weight: 700; margin-top: 10px; }
+    .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
+    ul { padding-left: 22px; max-height: 230px; overflow: auto; }
+    .demo { background: #fff4cc; border: 1px solid #e2bd35; padding: 9px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Registro de asistencia</h1>
+  <p class="muted">QR proyectado y registro manual con credencial.</p>
+  <p id="demo-banner" class="demo" hidden>Modo de prueba: no se modifica Google Sheets.</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>QR proyectado</h2>
+      <label for="course">Grado y grupo</label>
+      <select id="course">
+        <option value="1|1">1.º — Grupo 1</option>
+        <option value="1|3">1.º — Grupo 3</option>
+        <option value="1|5">1.º — Grupo 5</option>
+        <option value="3|3">3.º — Grupo 3</option>
+      </select>
+      <div class="actions">
+        <button id="start-session">Iniciar 60 segundos</button>
+        <button id="stop-session" class="danger" disabled>Cerrar sesión</button>
+      </div>
+      <div id="timer">00:00</div>
+      <div id="qr" aria-label="Código QR dinámico"></div>
+      <p>Registrados: <span id="count">0</span></p>
+      <p id="session-label" class="muted">Sin sesión activa.</p>
+    </section>
+
+    <section class="card">
+      <h2>Registro manual</h2>
+      <p class="muted">Alinea el QR o el código de barras dentro de las guías.</p>
+      <div class="actions">
+        <button id="start-camera">Activar cámara</button>
+        <button id="stop-camera" class="secondary" disabled>Detener cámara</button>
+      </div>
+      <div id="reader-wrap">
+        <div id="reader"></div>
+        <div class="guides" aria-hidden="true">
+          <div class="qr-guide"><div class="bar-guide"></div></div>
+        </div>
+      </div>
+      <div class="actions">
+        <input id="demo-code" inputmode="numeric" placeholder="Número de cuenta de prueba">
+        <button id="simulate" class="secondary">Simular lectura</button>
+      </div>
+      <p id="manual-status" class="status">Crea una sesión para comenzar.</p>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:18px">
+    <h2>Últimos registros</h2>
+    <ul id="records"><li>Todavía no hay registros.</li></ul>
+  </section>
+</main>
+
+<script>
+  const CONFIG = {
+    MODO_DEMO: false,
+    API_URL: "https://script.google.com/macros/s/AKfycbwC_u-NtgAxL74DRrmT5GHKPhPa8olgyas0zSdGV0_A_q2vPeru-YQagsX1dQNPg2dl/exec",
+    ALUMNO_URL: new URL("alumno.html", location.href).href,
+    SESSION_SECONDS: 60,
+    QR_ROTATION_SECONDS: 8
+  };
+
+  let sessionId = "";
+  let secondsLeft = 0;
+  let sessionTimer = null;
+  let qrTimer = null;
+  let statusTimer = null;
+  let scanner = null;
+  let lastCode = "";
+  let lastReadAt = 0;
+
+  const el = (id) => document.getElementById(id);
+
+  function adminKey() {
+    let key = sessionStorage.getItem("asistencia-admin-key") || "";
+    if (!key) {
+      key = window.prompt("Introduce la clave privada del docente:") || "";
+      if (key) sessionStorage.setItem("asistencia-admin-key", key.trim());
+    }
+    if (!key) throw new Error("Se necesita la clave privada del docente.");
+    return key.trim();
+  }
+
+  function demoRecords() {
+    return JSON.parse(localStorage.getItem("asistencia-demo-records") || "[]");
+  }
+
+  function saveDemoRecords(records) {
+    localStorage.setItem("asistencia-demo-records", JSON.stringify(records));
+    window.dispatchEvent(new Event("storage"));
+  }
+
+  async function api(params) {
+    if (CONFIG.MODO_DEMO) return demoApi(params);
+    const url = new URL(CONFIG.API_URL);
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    const response = await fetch(url, { cache: "no-store" });
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.message || "Error del servidor");
+    return data;
+  }
+
+  function demoApi(params) {
+    if (params.action === "createSession") {
+      return { ok: true, sessionId: `SES-${Date.now()}` };
+    }
+    if (params.action === "token") {
+      const slot = Math.floor(Date.now() / (CONFIG.QR_ROTATION_SECONDS * 1000));
+      return { ok: true, slot, signature: `demo-${slot}` };
+    }
+    if (params.action === "status") {
+      return { ok: true, records: demoRecords().filter((r) => r.sessionId === params.sessionId) };
+    }
+    if (params.action === "manual") {
+      const code = String(params.codigo || "").trim();
+      if (!code) throw new Error("Número de cuenta vacío.");
+      const records = demoRecords();
+      if (records.some((r) => r.sessionId === params.sessionId && r.codigo === code)) {
+        return { ok: true, duplicate: true, message: `Asistencia previamente registrada: ${code}` };
+      }
+      records.push({ sessionId: params.sessionId, codigo: code, nombre: `Alumno ${code}`, method: "REGISTRO_MANUAL", time: new Date().toLocaleTimeString() });
+      saveDemoRecords(records);
+      return { ok: true, message: `Asistencia registrada: ${code}` };
+    }
+    throw new Error("Acción de demostración desconocida.");
+  }
+
+  async function startSession() {
+    try {
+      const [grado, grupo] = el("course").value.split("|");
+      const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
+      sessionId = result.sessionId;
+      secondsLeft = CONFIG.SESSION_SECONDS;
+      el("start-session").disabled = true;
+      el("stop-session").disabled = false;
+      el("session-label").textContent = `Sesión activa: ${grado}.º, grupo ${grupo}`;
+      setStatus("Sesión lista para registro en línea o manual.", "ok");
+      updateTimer();
+      await rotateQr();
+      sessionTimer = setInterval(() => {
+        secondsLeft -= 1;
+        updateTimer();
+        if (secondsLeft <= 0) stopSession();
+      }, 1000);
+      qrTimer = setInterval(rotateQr, CONFIG.QR_ROTATION_SECONDS * 1000);
+      statusTimer = setInterval(refreshStatus, 1500);
+      await refreshStatus();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  }
+
+  async function rotateQr() {
+    if (!sessionId || secondsLeft <= 0) return;
+    const token = await api({ action: "token", sessionId, adminKey: adminKey() });
+    const url = new URL(CONFIG.ALUMNO_URL);
+    url.searchParams.set("sessionId", sessionId);
+    url.searchParams.set("slot", token.slot);
+    url.searchParams.set("signature", token.signature);
+    el("qr").replaceChildren();
+    new QRCode(el("qr"), { text: url.href, width: 270, height: 270, correctLevel: QRCode.CorrectLevel.M });
+  }
+
+  function updateTimer() {
+    const total = Math.max(secondsLeft, 0);
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    el("timer").textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  async function stopSession() {
+    clearInterval(sessionTimer);
+    clearInterval(qrTimer);
+    clearInterval(statusTimer);
+    sessionTimer = qrTimer = statusTimer = null;
+    el("qr").replaceChildren();
+    el("timer").textContent = "00:00";
+    el("start-session").disabled = false;
+    el("stop-session").disabled = true;
+    if (!CONFIG.MODO_DEMO && sessionId) {
+      try { await api({ action: "closeSession", sessionId, adminKey: adminKey() }); } catch (_) {}
+    }
+    el("session-label").textContent = sessionId ? `Registro manual disponible: ${sessionId}` : "Sin sesión activa.";
+    await refreshStatus();
+  }
+
+  async function refreshStatus() {
+    if (!sessionId) return;
+    try {
+      const result = await api({ action: "status", sessionId, adminKey: adminKey() });
+      el("count").textContent = result.records.length;
+      el("records").innerHTML = result.records.length
+        ? result.records.slice().reverse().map((r) => `<li><strong>${escapeHtml(r.nombre || r.codigo)}</strong> — ${escapeHtml(r.method)} — ${escapeHtml(r.time || "")}</li>`).join("")
+        : "<li>Todavía no hay registros.</li>";
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  }
+
+  async function registerManual(code, format = "SIMULADO") {
+    code = String(code || "").trim();
+    if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
+    if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
+    const now = Date.now();
+    if (code === lastCode && now - lastReadAt < 2500) return;
+    lastCode = code;
+    lastReadAt = now;
+    try {
+      setStatus("Verificando…", "");
+      const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
+      setStatus(`${result.duplicate ? "⚠️" : "✅"} ${result.message}`, result.duplicate ? "warn" : "ok");
+      await refreshStatus();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  }
+
+  async function startCamera() {
+    if (scanner) return;
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.ITF,
+        Html5QrcodeSupportedFormats.EAN_13
+      ]
+    });
+    try {
+      await scanner.start(
+        { facingMode: { ideal: "environment" } },
+        { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * .9), height: Math.min(Math.floor(h * .8), 340) }) },
+        (text, result) => registerManual(text, result?.result?.format?.formatName || "DESCONOCIDO"),
+        () => {}
+      );
+      el("start-camera").disabled = true;
+      el("stop-camera").disabled = false;
+    } catch (error) {
+      scanner = null;
+      setStatus("No fue posible abrir la cámara. Usa localhost/HTTPS y concede permiso.", "error");
+    }
+  }
+
+  async function stopCamera() {
+    if (!scanner) return;
+    try { await scanner.stop(); await scanner.clear(); } catch (_) {}
+    scanner = null;
+    el("start-camera").disabled = false;
+    el("stop-camera").disabled = true;
+  }
+
+  function setStatus(message, type) {
+    el("manual-status").textContent = message;
+    el("manual-status").className = `status ${type}`;
+  }
+
+  function escapeHtml(value) {
+    const node = document.createElement("span");
+    node.textContent = String(value);
+    return node.innerHTML;
+  }
+
+  el("start-session").addEventListener("click", startSession);
+  el("stop-session").addEventListener("click", stopSession);
+  el("start-camera").addEventListener("click", startCamera);
+  el("stop-camera").addEventListener("click", stopCamera);
+  el("simulate").addEventListener("click", () => registerManual(el("demo-code").value));
+  window.addEventListener("storage", refreshStatus);
+</script>
+</body>
+</html>
