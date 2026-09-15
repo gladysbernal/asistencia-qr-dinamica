@@ -27,8 +27,8 @@
     #reader-wrap { position: relative; width: 100%; overflow: hidden; border-radius: 12px; background: #111; }
     #reader { width: 100%; min-height: 260px; }
     .guides { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; }
-    .qr-guide { width: min(72vw, 250px); aspect-ratio: 1; border: 3px solid #35d07f; border-radius: 16px; display: grid; place-items: center; }
-    .bar-guide { width: 92%; aspect-ratio: 4/1; border: 3px solid #3aa7ff; border-radius: 8px; }
+    .qr-guide { width: min(86vw, 310px); aspect-ratio: 1; border: 3px solid #35d07f; border-radius: 16px; display: grid; place-items: center; }
+    .bar-guide { width: 98%; height: 42%; border: 3px solid #3aa7ff; border-radius: 8px; }
     .status { min-height: 28px; font-weight: 700; margin-top: 10px; }
     .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
     ul { padding-left: 22px; max-height: 230px; overflow: auto; }
@@ -264,6 +264,7 @@
       if (!cameras.length) throw new Error("No se encontró ninguna cámara disponible.");
       const preferred = cameras.find((camera) => /back|rear|environment|trasera/i.test(camera.label)) || cameras[0];
       scanner = new Html5Qrcode("reader", {
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         formatsToSupport: [
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.CODE_39,
@@ -275,7 +276,14 @@
       });
       await scanner.start(
         preferred.id,
-        { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * .9), height: Math.min(Math.floor(h * .8), 340) }) },
+        {
+          fps: 20,
+          aspectRatio: 1.777778,
+          qrbox: (w, h) => ({
+            width: Math.floor(w * .96),
+            height: Math.min(Math.floor(h * .62), 260)
+          })
+        },
         (text, result) => registerManual(text, result?.result?.format?.formatName || "DESCONOCIDO"),
         () => {}
       );
