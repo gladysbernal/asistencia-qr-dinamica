@@ -256,19 +256,25 @@
 
   async function startCamera() {
     if (scanner) return;
-    scanner = new Html5Qrcode("reader", {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.EAN_13
-      ]
-    });
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("Este navegador no permite utilizar la cámara.");
+      }
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras.length) throw new Error("No se encontró ninguna cámara disponible.");
+      const preferred = cameras.find((camera) => /back|rear|environment|trasera/i.test(camera.label)) || cameras[0];
+      scanner = new Html5Qrcode("reader", {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.EAN_13
+        ]
+      });
       await scanner.start(
-        { facingMode: { ideal: "environment" } },
+        preferred.id,
         { fps: 12, qrbox: (w, h) => ({ width: Math.floor(w * .9), height: Math.min(Math.floor(h * .8), 340) }) },
         (text, result) => registerManual(text, result?.result?.format?.formatName || "DESCONOCIDO"),
         () => {}
@@ -277,7 +283,8 @@
       el("stop-camera").disabled = false;
     } catch (error) {
       scanner = null;
-      setStatus("No fue posible abrir la cámara. Usa localhost/HTTPS y concede permiso.", "error");
+      const detail = String(error?.message || error || "Error desconocido");
+      setStatus(`No fue posible abrir la cámara: ${detail}`, "error");
     }
   }
 
