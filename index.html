@@ -7,68 +7,93 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --blue:#0756d8; --navy:#09255a; --cyan:#43ccea; --ink:#12213d; --muted:#71809a; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #f3f6fa; color: #172033; }
-    main { width: min(1050px, 94vw); margin: 24px auto; }
-    h1 { margin-bottom: 6px; }
-    .muted { color: #5f6b7a; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(310px,1fr)); gap: 18px; }
-    .card { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 5px 20px #19324d16; }
-    button, input, select { font: inherit; padding: 11px 14px; border-radius: 9px; }
-    button { border: 0; background: #1769e0; color: white; font-weight: 700; cursor: pointer; }
-    button.secondary { background: #526173; }
-    button.danger { background: #a92331; }
-    button:disabled { opacity: .45; cursor: not-allowed; }
-    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin: 12px 0; }
-    #qr { min-height: 282px; display: grid; place-items: center; margin: 12px auto; }
-    #timer { font-size: 34px; font-weight: 800; }
-    #count { font-size: 26px; font-weight: 800; color: #1769e0; }
-    #reader-wrap { position: relative; width: 100%; overflow: hidden; border-radius: 12px; background: #111; }
-    #reader { width: 100%; min-height: 260px; }
-    .guides { position: absolute; inset: 0; pointer-events: none; display: grid; place-items: center; }
-    .qr-guide { width: min(86vw, 310px); aspect-ratio: 1; border: 3px solid #35d07f; border-radius: 16px; display: grid; place-items: center; }
-    .bar-guide { width: 98%; height: 42%; border: 3px solid #3aa7ff; border-radius: 8px; }
-    .status { min-height: 28px; font-weight: 700; margin-top: 10px; }
-    .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
-    ul { padding-left: 22px; max-height: 230px; overflow: auto; }
-    .demo { background: #fff4cc; border: 1px solid #e2bd35; padding: 9px; border-radius: 8px; }
-    .field { display: grid; gap: 6px; margin-top: 12px; }
-    .field input { width: 100%; border: 1px solid #b9c3d0; background: #fff; }
+    body { margin: 0; min-height:100vh; background: linear-gradient(145deg,#0756d8 0 285px,#eef4fb 285px 100%); color: var(--ink); }
+    body::before, body::after { content:""; position:fixed; border-radius:50%; background:#ffffff12; pointer-events:none; }
+    body::before { width:280px; height:280px; right:-80px; top:-90px; }
+    body::after { width:150px; height:150px; left:-55px; top:120px; }
+    main { width: min(1120px, 92vw); margin: 0 auto; padding: 34px 0 56px; position:relative; }
+    .topbar { color:#fff; display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:28px; }
+    .brand { display:flex; gap:14px; align-items:center; }
+    .brand-icon { width:52px; height:52px; border-radius:17px; display:grid; place-items:center; background:#fff; color:var(--blue); font-size:25px; box-shadow:0 10px 28px #002d8338; }
+    h1 { margin:0; font-size:clamp(1.7rem,4vw,2.35rem); letter-spacing:-.04em; }
+    .topbar p { margin:5px 0 0; color:#dce9ff; }
+    .secure-badge { flex:none; padding:9px 13px; border:1px solid #ffffff40; border-radius:999px; background:#ffffff14; font-size:.83rem; font-weight:700; }
+    .muted { color: var(--muted); }
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; align-items:start; }
+    .card { background:#fff; border:1px solid #e9eef6; border-radius:24px; padding:24px; box-shadow:0 18px 55px #0c32651a; }
+    .card-title { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    .card-title h2 { margin:0; font-size:1.18rem; }
+    .icon { width:42px; height:42px; border-radius:14px; display:grid; place-items:center; background:#e9f1ff; color:var(--blue); font-size:20px; }
+    label { display:block; font-size:.84rem; font-weight:750; color:#53627a; margin-bottom:7px; }
+    button, input, select { font:inherit; padding:13px 15px; border-radius:13px; min-height:47px; }
+    input, select { width:100%; border:1px solid #d8e0ec; background:#f8faff; color:var(--ink); outline:none; }
+    input:focus, select:focus { border-color:#3980eb; box-shadow:0 0 0 4px #1769e018; background:#fff; }
+    button { border:0; background:linear-gradient(135deg,#0756d8,#176eea); color:#fff; font-weight:800; cursor:pointer; box-shadow:0 8px 18px #0756d82e; }
+    button.secondary { background:#edf2f8; color:#3f516d; box-shadow:none; }
+    button.danger { background:#fff0f1; color:#c1293b; box-shadow:none; }
+    button:disabled { opacity:.45; cursor:not-allowed; box-shadow:none; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; }
+    .actions button { flex:1 1 150px; }
+    .session-metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+    .metric { padding:14px; background:#f5f8fd; border-radius:16px; }
+    .metric small { display:block; color:var(--muted); font-weight:700; margin-bottom:3px; }
+    #timer { font-size:30px; font-weight:850; color:var(--navy); letter-spacing:-.04em; }
+    #count { font-size:30px; font-weight:850; color:var(--blue); }
+    #qr { min-height:294px; display:grid; place-items:center; margin:10px auto; border-radius:20px; background:linear-gradient(145deg,#f5f9ff,#fff); border:1px dashed #cfdbed; }
+    #qr img, #qr canvas { padding:10px; background:#fff; border-radius:12px; box-shadow:0 8px 25px #163a6817; }
+    #reader-wrap { position:relative; width:100%; overflow:hidden; border-radius:18px; background:#091426; box-shadow:inset 0 0 0 1px #ffffff18; }
+    #reader { width:100%; min-height:280px; }
+    .guides { position:absolute; inset:0; pointer-events:none; display:grid; place-items:center; }
+    .qr-guide { width:min(86vw,310px); aspect-ratio:1; border:3px solid #4fe39b; border-radius:20px; display:grid; place-items:center; box-shadow:0 0 0 999px #00122920; }
+    .bar-guide { width:98%; height:42%; border:3px solid #43ccea; border-radius:10px; box-shadow:0 0 18px #43ccea55; }
+    .status { min-height:28px; font-weight:750; margin:12px 0 0; padding:11px 13px; border-radius:12px; background:#f5f8fd; }
+    .ok { color:#08783e; background:#eaf9f1; } .warn { color:#9a5a00; background:#fff7e4; } .error { color:#b31e2d; background:#fff0f2; }
+    .demo { background:#fff4cc; border:1px solid #e2bd35; padding:9px; border-radius:8px; }
+    .field { display:grid; gap:0; margin-top:14px; }
+    .manual-input { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:14px; }
+    .records-card { margin-top:20px; }
+    ul { list-style:none; padding:0; margin:0; max-height:280px; overflow:auto; display:grid; gap:9px; }
+    li { padding:13px 15px; border-radius:14px; background:#f6f9fd; border:1px solid #edf1f7; color:#53627a; }
+    li strong { color:var(--ink); }
+    @media (max-width:760px) { body{background:linear-gradient(145deg,#0756d8 0 235px,#eef4fb 235px 100%)} main{width:min(94vw,560px);padding-top:22px}.topbar{align-items:flex-start}.secure-badge{display:none}.grid{grid-template-columns:1fr}.card{padding:19px;border-radius:21px}.manual-input{grid-template-columns:1fr}.manual-input button{width:100%} }
   </style>
 </head>
 <body>
 <main>
-  <h1>Registro de asistencia</h1>
-  <p class="muted">QR proyectado y registro manual con credencial.</p>
+  <header class="topbar">
+    <div class="brand"><div class="brand-icon">✓</div><div><h1>Control de asistencia</h1><p>Registro rápido, seguro y en tiempo real</p></div></div>
+    <div class="secure-badge">● Versión oficial · registro institucional</div>
+  </header>
   <p id="demo-banner" class="demo" hidden>Modo de prueba: no se modifica Google Sheets.</p>
 
   <div class="grid">
     <section class="card">
-      <h2>QR proyectado</h2>
+      <div class="card-title"><div class="icon">▦</div><div><h2>QR proyectado</h2><span class="muted">Sesión para el grupo</span></div></div>
       <label for="course">Grado y grupo</label>
       <select id="course">
-        <option value="1|1">1.º — Grupo 1</option>
-        <option value="1|3">1.º — Grupo 3</option>
-        <option value="1|5">1.º — Grupo 5</option>
-        <option value="3|3">3.º — Grupo 3</option>
+        <option value="">Carga los grupos con tu PIN</option>
       </select>
       <div class="field">
-        <label for="admin-key">PIN del docente (6 dígitos)</label>
+        <label for="admin-key">PIN docente (6 dígitos)</label>
         <input id="admin-key" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••">
+        <button id="load-groups" class="secondary">Cargar grupos de la hoja</button>
       </div>
       <div class="actions">
         <button id="start-session">Iniciar 60 segundos</button>
         <button id="stop-session" class="danger" disabled>Cerrar sesión</button>
+        <button id="recover-session" hidden>Recuperar sesión anterior</button>
       </div>
-      <div id="timer">00:00</div>
       <div id="qr" aria-label="Código QR dinámico"></div>
-      <p>Registrados: <span id="count">0</span></p>
+      <p><a id="student-link" hidden>Abrir registro del alumno</a></p>
+      <div class="session-metrics"><div class="metric"><small>Tiempo restante</small><div id="timer">00:00</div></div><div class="metric"><small>Registrados</small><span id="count">0</span></div></div>
+      <p id="queue-summary" role="status" aria-live="polite">VERSIÓN OFICIAL · Sin solicitudes.</p>
       <p id="session-label" class="muted">Sin sesión activa.</p>
     </section>
 
     <section class="card">
-      <h2>Registro manual</h2>
+      <div class="card-title"><div class="icon">▣</div><div><h2>Lector de credencial</h2><span class="muted">QR y código de barras</span></div></div>
       <p class="muted">Alinea el QR o el código de barras dentro de las guías.</p>
       <div class="actions">
         <button id="start-camera">Activar cámara</button>
@@ -80,24 +105,31 @@
           <div class="qr-guide"><div class="bar-guide"></div></div>
         </div>
       </div>
-      <div class="actions">
-        <input id="demo-code" inputmode="numeric" placeholder="Número de cuenta de prueba">
-        <button id="simulate" class="secondary">Simular lectura</button>
+      <div class="manual-input">
+        <input id="demo-code" inputmode="numeric" placeholder="Número de cuenta del alumno">
+        <button id="simulate" class="secondary">Registrar manualmente</button>
       </div>
       <p id="manual-status" class="status">Crea una sesión para comenzar.</p>
     </section>
   </div>
 
-  <section class="card" style="margin-top:18px">
-    <h2>Últimos registros</h2>
+  <section class="card records-card">
+    <h2>Supervisión del sistema</h2>
+    <button id="maintenance-check" class="secondary">Revisar mantenimiento (sin borrar)</button>
+    <p id="maintenance-status" role="status" aria-live="polite">Informe pendiente de consulta.</p>
+  </section>
+  <section class="card records-card">
+    <div class="card-title"><div class="icon">✓</div><div><h2>Últimos registros</h2><span class="muted">Asistencias de esta sesión</span></div></div>
     <ul id="records"><li>Todavía no hay registros.</li></ul>
   </section>
 </main>
 
+<script src="config.js"></script>
+<script src="queue-client.js"></script>
 <script>
   const CONFIG = {
     MODO_DEMO: false,
-    API_URL: "https://script.google.com/macros/s/AKfycbwC_u-NtgAxL74DRrmT5GHKPhPa8olgyas0zSdGV0_A_q2vPeru-YQagsX1dQNPg2dl/exec",
+    API_URL: "ENTORNO_FICTICIO",
     ALUMNO_URL: new URL("alumno.html", location.href).href,
     SESSION_SECONDS: 60,
     QR_ROTATION_SECONDS: 8
@@ -111,13 +143,80 @@
   let scanner = null;
   let lastCode = "";
   let lastReadAt = 0;
+  let refreshPromise = null;
+  let savedCount = 0, pendingCount = 0;
+  let closing = false;
+  let starting = false;
+  async function loadGroups() {
+    el('load-groups').disabled = true;
+    el('course').replaceChildren();
+    try {
+      const r = await api({ action: 'groups', adminKey: adminKey() });
+      if (!r.groups.length) throw new Error('La hoja no contiene grupos válidos.');
+      for (const g of r.groups) {
+        const option = document.createElement('option');
+        option.value = JSON.stringify([g.grado, g.grupo]);
+        option.textContent = `${g.grado}.º — Grupo ${g.grupo} · ${g.alumnos} alumnos · ${g.carreras.join(' / ')}`;
+        el('course').appendChild(option);
+      }
+      setStatus('Grupos cargados desde C y D. Carrera: F.', 'ok');
+    } catch (error) { setStatus(error.message, 'error'); }
+    finally { el('load-groups').disabled = false; }
+  }
+
+  const RECOVERY_KEY = 'asistencia-oficial-cola-v2-sesion-docente';
+  let recovering = false;
+
+  function storedSession() {
+    try { return localStorage.getItem(RECOVERY_KEY) || ''; }
+    catch (_) { return ''; }
+  }
+
+  async function recoverSession() {
+    if (recovering || starting || closing) return;
+    const id = storedSession();
+    if (!id) return setStatus('No hay sesión anterior en este navegador.', 'warn');
+    recovering = true;
+    el('recover-session').disabled = true;
+    try {
+      // Validar autorización y existencia antes de adoptar la sesión.
+      await api({ action: 'status', sessionId: id, adminKey: adminKey() });
+      sessionId = id;
+      pendingCount = Infinity;
+      clearInterval(statusTimer);
+      statusTimer = setInterval(refreshStatus, 5000);
+      // No reiniciar los 60 segundos ni reactivar un QR antiguo.
+      if (!await stopSession()) throw new Error('El cierre o guardado no quedó confirmado. Reintenta la recuperación.');
+      el('recover-session').hidden = true;
+      setStatus(pendingCount ? 'Sesión recuperada; se seguirán procesando los pendientes.' : 'Sesión recuperada y lote verificado. Registro manual disponible.', pendingCount ? 'warn' : 'ok');
+    } catch (error) {
+      setStatus('No se pudo recuperar: ' + error.message, 'error');
+      el('start-session').disabled = true;
+    } finally {
+      recovering = false;
+      el('recover-session').disabled = false;
+    }
+  }
 
   const el = (id) => document.getElementById(id);
 
   function adminKey() {
     const key = el("admin-key").value.trim();
-    if (!/^\d{6}$/.test(key)) throw new Error("Escribe el PIN docente de 6 dígitos.");
+    if (!/^\d{6}$/.test(key)) throw new Error("Escribe el PIN docente de seis dígitos.");
     return key;
+  }
+
+  async function checkMaintenance() {
+    el('maintenance-check').disabled = true;
+    el('maintenance-status').textContent = 'Consultando informe sin borrados…';
+    try {
+      const r = await api({ action: 'maintenance', adminKey: adminKey() });
+      if (r.dryRun !== true) throw new Error('El servidor no confirmó una revisión sin borrados.');
+      el('maintenance-status').textContent = `${r.candidates.length} sesiones candidatas (${r.retentionDays} días) · ${r.protectedSessions} protegidas · ${r.unconfirmedReceipts} recibos sin confirmar. `
+        + (r.warnings.length ? r.warnings.join(' ') : 'Sin avisos en esta revisión.') + ' No se borró ningún dato.';
+    } catch (error) {
+      el('maintenance-status').textContent = 'No se pudo consultar: ' + error.message;
+    } finally { el('maintenance-check').disabled = false; }
   }
 
   function demoRecords() {
@@ -131,12 +230,7 @@
 
   async function api(params) {
     if (CONFIG.MODO_DEMO) return demoApi(params);
-    const url = new URL(CONFIG.API_URL);
-    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
-    const response = await fetch(url, { cache: "no-store" });
-    const data = await response.json();
-    if (!data.ok) throw new Error(data.message || "Error del servidor");
-    return data;
+    return QueueClient.request(params, params.action === 'manual' ? 3 : 0);
   }
 
   function demoApi(params) {
@@ -165,10 +259,22 @@
   }
 
   async function startSession() {
+    if (starting || closing || recovering) return;
+    if (!sessionId && storedSession()) return setStatus('Recupera la sesión anterior antes de crear otra.', 'warn');
+    starting = true;
+    el("start-session").disabled = true;
     try {
-      const [grado, grupo] = el("course").value.split("|");
+      if (sessionId) {
+        if (!await refreshStatus()) throw new Error('No se pudo comprobar la sesión anterior. Reintenta antes de cambiarla.');
+        if (pendingCount) throw new Error('Hay solicitudes pendientes. No cambies de sesión hasta guardarlas.');
+        if (!await stopSession()) throw new Error('No se confirmó el cierre de la sesión anterior.');
+      }
+      if (!el("course").value) throw new Error("Carga los grupos y selecciona grado y grupo.");
+      const [grado, grupo] = JSON.parse(el("course").value);
       const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
       sessionId = result.sessionId;
+      try { localStorage.setItem(RECOVERY_KEY, sessionId); }
+      catch (_) { setStatus('No se pudo recordar la sesión. Conserva este identificador: ' + sessionId, 'warn'); }
       secondsLeft = CONFIG.SESSION_SECONDS;
       el("start-session").disabled = true;
       el("stop-session").disabled = false;
@@ -181,21 +287,27 @@
         updateTimer();
         if (secondsLeft <= 0) stopSession();
       }, 1000);
-      qrTimer = setInterval(rotateQr, CONFIG.QR_ROTATION_SECONDS * 1000);
-      statusTimer = setInterval(refreshStatus, 1500);
+      qrTimer = setInterval(() => rotateQr().catch(error => setStatus('No se pudo renovar el QR: ' + error.message, 'error')), CONFIG.QR_ROTATION_SECONDS * 1000);
+      clearInterval(statusTimer);
+      statusTimer = setInterval(refreshStatus, 5000);
       await refreshStatus();
     } catch (error) {
       setStatus(error.message, "error");
-    }
+      el("start-session").disabled = false;
+    } finally { starting = false; }
   }
 
   async function rotateQr() {
     if (!sessionId || secondsLeft <= 0) return;
+    const id = sessionId;
     const token = await api({ action: "token", sessionId, adminKey: adminKey() });
+    if (id !== sessionId || secondsLeft <= 0) return;
     const url = new URL(CONFIG.ALUMNO_URL);
     url.searchParams.set("sessionId", sessionId);
     url.searchParams.set("slot", token.slot);
     url.searchParams.set("signature", token.signature);
+    el("student-link").href = url.href;
+    el("student-link").hidden = false;
     el("qr").replaceChildren();
     new QRCode(el("qr"), { text: url.href, width: 270, height: 270, correctLevel: QRCode.CorrectLevel.M });
   }
@@ -208,31 +320,54 @@
   }
 
   async function stopSession() {
+    if (closing) return;
+    closing = true;
     clearInterval(sessionTimer);
     clearInterval(qrTimer);
-    clearInterval(statusTimer);
-    sessionTimer = qrTimer = statusTimer = null;
+    sessionTimer = qrTimer = null;
+    secondsLeft = 0;
+    el("student-link").hidden = true;
+    el("student-link").href = "";
     el("qr").replaceChildren();
     el("timer").textContent = "00:00";
     el("start-session").disabled = false;
     el("stop-session").disabled = true;
+    let closed = true;
     if (!CONFIG.MODO_DEMO && sessionId) {
-      try { await api({ action: "closeSession", sessionId, adminKey: adminKey() }); } catch (_) {}
+      try { await api({ action: "closeSession", sessionId, adminKey: adminKey() }); }
+      catch (error) { closed = false; setStatus('No se pudo confirmar el cierre: ' + error.message, 'error'); }
     }
     el("session-label").textContent = sessionId ? `Registro manual disponible: ${sessionId}` : "Sin sesión activa.";
-    await refreshStatus();
+    const verified = await refreshStatus();
+    closing = false;
+    return closed && verified;
   }
 
   async function refreshStatus() {
     if (!sessionId) return;
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = refreshStatusOnce();
+    try { return await refreshPromise; } finally { refreshPromise = null; }
+  }
+
+  async function refreshStatusOnce() {
+    const id = sessionId;
     try {
-      const result = await api({ action: "status", sessionId, adminKey: adminKey() });
+      await api({ action: 'processBatch', sessionId: id, adminKey: adminKey() });
+      const result = await api({ action: "status", sessionId: id, adminKey: adminKey() });
+      if (id !== sessionId) return;
+      savedCount = result.saved;
+      pendingCount = result.pending.length;
       el("count").textContent = result.records.length;
+      el('queue-summary').textContent = `${result.received} recibidas · ${savedCount} guardadas · ${pendingCount} pendientes`;
       el("records").innerHTML = result.records.length
-        ? result.records.slice().reverse().map((r) => `<li><strong>${escapeHtml(r.nombre || r.codigo)}</strong> — ${escapeHtml(r.method)} — ${escapeHtml(r.time || "")}</li>`).join("")
+        ? result.records.slice().reverse().map((r) => `<li><strong>${escapeHtml(r.nombre || r.codigo)}</strong> — Guardada ✓</li>`).join("")
         : "<li>Todavía no hay registros.</li>";
+      return true;
     } catch (error) {
       setStatus(error.message, "error");
+      pendingCount = Infinity;
+      return false;
     }
   }
 
@@ -247,8 +382,9 @@
     try {
       setStatus("Verificando…", "");
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
-      setStatus(`${result.duplicate ? "⚠️" : "✅"} ${result.message}`, result.duplicate ? "warn" : "ok");
-      await refreshStatus();
+      setStatus(result.message, "warn");
+      if (!await refreshStatus()) return;
+      setStatus(pendingCount ? 'Solicitud recibida; hay registros pendientes.' : 'Lote guardado y verificado.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus(error.message, "error");
     }
@@ -316,6 +452,16 @@
   }
 
   el("start-session").addEventListener("click", startSession);
+  el('load-groups').addEventListener('click', loadGroups);
+  el('admin-key').addEventListener('input', () => el('course').replaceChildren());
+  el('maintenance-check').addEventListener('click', checkMaintenance);
+  el('recover-session').addEventListener('click', recoverSession);
+  if (storedSession()) {
+    el('recover-session').hidden = false;
+    el('start-session').disabled = true;
+    el('session-label').textContent = 'Sesión anterior pendiente de recuperación: ' + storedSession();
+    setStatus('Escribe la clave del proyecto y recupera la sesión. No se guarda la clave en el navegador.', 'warn');
+  }
   el("stop-session").addEventListener("click", stopSession);
   el("start-camera").addEventListener("click", startCamera);
   el("stop-camera").addEventListener("click", stopCamera);

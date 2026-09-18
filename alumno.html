@@ -5,78 +5,125 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Registrar mi asistencia</title>
   <style>
-    :root { font-family: Arial, sans-serif; }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #f3f6fa; color: #172033; }
-    main { width: min(470px,92vw); margin: 36px auto; background: white; padding: 24px; border-radius: 16px; box-shadow: 0 5px 20px #19324d16; }
-    label { display: block; font-weight: 700; margin: 18px 0 7px; }
-    input, button { width: 100%; font: inherit; padding: 14px; border-radius: 9px; }
-    input { border: 1px solid #aab4c0; }
-    button { margin-top: 13px; border: 0; color: white; background: #1769e0; font-weight: 800; }
-    button:disabled { opacity: .5; }
-    #status { min-height: 30px; margin-top: 18px; font-weight: 800; }
-    .ok { color: #08783e; } .warn { color: #a45e00; } .error { color: #b31e2d; }
+    :root { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; --blue:#0756d8; --navy:#0b2557; --muted:#71809a; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:#12213d; background:linear-gradient(155deg,#0756d8 0 48%,#0649be 48% 100%); display:grid; place-items:center; overflow-x:hidden; }
+    body::before, body::after { content:""; position:fixed; border-radius:50%; background:#ffffff12; }
+    body::before { width:280px; height:280px; right:-100px; top:-70px; }
+    body::after { width:190px; height:190px; left:-80px; bottom:30px; }
+    .shell { width:min(460px,92vw); position:relative; z-index:1; }
+    .student-header { color:#fff; text-align:center; margin-bottom:24px; }
+    .check { width:70px; height:70px; margin:0 auto 15px; display:grid; place-items:center; border-radius:24px; background:#ffffff1c; border:1px solid #ffffff35; font-size:34px; }
+    h1 { margin:0; font-size:2rem; letter-spacing:-.04em; }
+    .student-header p { color:#dce9ff; margin:8px 0 0; }
+    main { background:#fff; padding:27px; border-radius:26px; box-shadow:0 22px 60px #002b783f; }
+    .session-chip { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border-radius:999px; background:#eaf2ff; color:var(--blue); font-size:.8rem; font-weight:800; }
+    main h2 { margin:18px 0 5px; font-size:1.35rem; }
+    main p { margin:0; color:var(--muted); line-height:1.5; }
+    label { display:block; font-size:.84rem; font-weight:800; color:#53627a; margin:21px 0 7px; }
+    input, button { width:100%; font:inherit; padding:15px; border-radius:14px; min-height:52px; }
+    input { border:1px solid #d8e0ec; background:#f8faff; outline:none; font-size:1.08rem; }
+    input:focus { border-color:#3980eb; box-shadow:0 0 0 4px #1769e018; background:#fff; }
+    button { margin-top:14px; border:0; color:#fff; background:linear-gradient(135deg,#0756d8,#176eea); font-weight:850; box-shadow:0 10px 22px #0756d834; cursor:pointer; }
+    button:disabled { opacity:.5; }
+    #status { min-height:30px; margin:18px 0 0; padding:12px 14px; border-radius:13px; font-weight:800; background:#f5f8fd; }
+    #status:empty { display:none; }
+    .ok { color:#08783e; background:#eaf9f1!important; } .warn { color:#9a5a00; background:#fff7e4!important; } .error { color:#b31e2d; background:#fff0f2!important; }
+    .privacy { text-align:center; color:#cfe0ff; font-size:.78rem; margin-top:17px; }
   </style>
 </head>
 <body>
-<main>
-  <h1>Mi asistencia</h1>
-  <p>Confirma tu número de cuenta para registrar esta sesión.</p>
-  <label for="account">Número de cuenta</label>
-  <input id="account" inputmode="numeric" autocomplete="off">
-  <button id="register">Registrar asistencia</button>
-  <p id="status"></p>
-</main>
+<div class="shell">
+  <header class="student-header"><div class="check">✓</div><h1>Mi asistencia</h1><p>Confirma tu presencia en el aula</p></header>
+  <main>
+    <span class="session-chip">● Sesión activa</span>
+    <h2>Registro del estudiante</h2>
+    <p>Ingresa tu número de cuenta institucional para completar el registro.</p>
+    <label for="account">Número de cuenta</label>
+    <input id="account" inputmode="numeric" autocomplete="off" placeholder="Ej. 12345678">
+    <button id="register">Registrar mi asistencia</button>
+    <p id="status"></p>
+  </main>
+  <p class="privacy">Registro seguro · El enlace vence automáticamente</p>
+</div>
+<script src="config.js"></script>
+<script src="queue-client.js"></script>
 <script>
-  const CONFIG = {
-    MODO_DEMO: false,
-    API_URL: "https://script.google.com/macros/s/AKfycbwC_u-NtgAxL74DRrmT5GHKPhPa8olgyas0zSdGV0_A_q2vPeru-YQagsX1dQNPg2dl/exec"
-  };
   const query = new URLSearchParams(location.search);
   const account = document.getElementById("account");
   const button = document.getElementById("register");
   const status = document.getElementById("status");
-  account.value = localStorage.getItem("asistencia-numero-cuenta") || "";
-
-  async function register() {
-    const codigo = account.value.trim();
-    const sessionId = query.get("sessionId");
-    const slot = query.get("slot");
-    const signature = query.get("signature");
-    if (!sessionId || !slot || !signature) return show("El QR no contiene una sesión válida.", "error");
-    if (!codigo) return show("Escribe tu número de cuenta.", "warn");
-    button.disabled = true;
-    show("Registrando…", "");
-    try {
-      let result;
-      if (CONFIG.MODO_DEMO) {
-        const records = JSON.parse(localStorage.getItem("asistencia-demo-records") || "[]");
-        const duplicate = records.some((r) => r.sessionId === sessionId && r.codigo === codigo);
-        if (!duplicate) {
-          records.push({ sessionId, codigo, nombre: `Alumno ${codigo}`, method: "QR_PROYECTADO", time: new Date().toLocaleTimeString() });
-          localStorage.setItem("asistencia-demo-records", JSON.stringify(records));
-        }
-        result = { ok: true, duplicate, message: duplicate ? "Asistencia previamente registrada." : "Asistencia registrada correctamente." };
-      } else {
-        const url = new URL(CONFIG.API_URL);
-        Object.entries({ action: "register", sessionId, slot, signature, codigo }).forEach(([k,v]) => url.searchParams.set(k,v));
-        const response = await fetch(url, { cache: "no-store" });
-        result = await response.json();
-        if (!result.ok) throw new Error(result.message);
-      }
-      localStorage.setItem("asistencia-numero-cuenta", codigo);
-      show(`${result.duplicate ? "⚠️" : "✅"} ${result.message}`, result.duplicate ? "warn" : "ok");
-    } catch (error) {
-      show(error.message || "No fue posible registrar la asistencia.", "error");
-      button.disabled = false;
-    }
-  }
-
+  const sessionId = query.get("sessionId");
+  let checking = false;
+  account.value = localStorage.getItem("asistencia-oficial-cola-v2-cuenta") || "";
+  const chip = document.querySelector(".session-chip");
+  chip.textContent = sessionId ? "VERSIÓN OFICIAL · Sesión del QR" : "VERSIÓN OFICIAL · Escanea el QR docente";
   function show(message, type) {
     status.textContent = message;
     status.className = type;
   }
-  button.addEventListener("click", register);
+  function receiptKey(code) { return 'oficial-cola-v2-recibo:' + sessionId + ':' + code; }
+  async function confirm(receipt) {
+    if (checking) return;
+    checking = true;
+    button.disabled = true;
+    account.disabled = true;
+    try {
+      show('Solicitud recibida. Esperando que el docente guarde el lote…', 'warn');
+      for (let i = 0; i < 12; i++) {
+        await QueueClient.sleep((i === 0 ? 5000 : 8000) + Math.random() * 6000);
+        let result;
+        try {
+          result = await QueueClient.request({ action: 'receipt', sessionId,
+            codigo: receipt.codigo, receiptSignature: receipt.receiptSignature });
+        } catch (error) {
+          if (/Comprobante inválido|Solicitud no encontrada/.test(error.message)) throw error;
+          show('Solicitud recibida; no se pudo consultar aún su guardado. Reintentando…', 'warn');
+          continue;
+        }
+        if (result.saved) {
+          show('✓ Asistencia guardada y confirmada.', 'ok');
+          chip.textContent = 'VERSIÓN OFICIAL · Guardada';
+          button.textContent = 'Asistencia guardada';
+          return;
+        }
+      }
+      show('Solicitud recibida, pero el guardado todavía no está confirmado. Pide al docente revisar los pendientes.', 'warn');
+      button.textContent = 'Consultar guardado nuevamente';
+      button.disabled = false;
+    } catch (error) {
+      show(error.message, 'error');
+      button.textContent = 'Consultar guardado nuevamente';
+      button.disabled = false;
+    } finally { checking = false; }
+  }
+  async function register() {
+    if (checking) return;
+    const codigo = account.value.trim();
+    if (!sessionId || !query.get('slot') || !query.get('signature')) return show('Escanea un QR del panel docente de prueba.', 'error');
+    if (!/^\d{1,20}$/.test(codigo)) return show('Escribe una cuenta ficticia válida.', 'warn');
+    const existing = sessionStorage.getItem(receiptKey(codigo));
+    if (existing) return confirm(JSON.parse(existing));
+    button.disabled = true;
+    show('Enviando solicitud…', '');
+    try {
+      // Distribuir envíos para reducir la ráfaga de ejecuciones de Google.
+      await QueueClient.sleep(Math.random() * 8000);
+      const result = await QueueClient.request({ action:'register', sessionId, codigo,
+        slot:query.get('slot'), signature:query.get('signature') }, 3);
+      if (!result.receiptSignature || result.saved !== false) throw new Error('La API no respondió con un comprobante de recepción válido.');
+      const receipt = { codigo, receiptSignature:result.receiptSignature };
+      sessionStorage.setItem(receiptKey(codigo), JSON.stringify(receipt));
+      localStorage.setItem('asistencia-oficial-cola-v2-cuenta', codigo);
+      await confirm(receipt);
+    } catch (error) {
+      show(error.message || 'No fue posible enviar la solicitud.', 'error');
+      button.disabled = false;
+    }
+  }
+  button.addEventListener('click', register);
+  const previous = sessionId && sessionStorage.getItem(receiptKey(account.value.trim()));
+  if (previous) confirm(JSON.parse(previous));
 </script>
 </body>
 </html>
