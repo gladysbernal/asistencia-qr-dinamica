@@ -52,6 +52,10 @@
     .ok { color:#08783e; background:#eaf9f1; } .warn { color:#9a5a00; background:#fff7e4; } .error { color:#b31e2d; background:#fff0f2; }
     .demo { background:#fff4cc; border:1px solid #e2bd35; padding:9px; border-radius:8px; }
     .field { display:grid; gap:0; margin-top:14px; }
+    .pin-control { display:flex; align-items:center; gap:8px; }
+    .pin-control input { flex:1; min-width:0; }
+    .pin-control button { flex:none; width:47px; padding:0; font-size:24px; }
+    .pin-control button:focus-visible { outline:3px solid var(--cyan); outline-offset:3px; }
     .manual-input { display:grid; grid-template-columns:1fr auto; gap:10px; margin-top:14px; }
     .records-card { margin-top:20px; }
     ul { list-style:none; padding:0; margin:0; max-height:280px; overflow:auto; display:grid; gap:9px; }
@@ -77,8 +81,10 @@
       </select>
       <div class="field">
         <label for="admin-key">PIN docente (6 dígitos)</label>
-        <input id="admin-key" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••">
-        <button id="load-groups" class="secondary">Cargar grupos de la hoja</button>
+        <div class="pin-control">
+          <input id="admin-key" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="••••••">
+          <button id="load-groups" type="button" aria-label="Validar PIN y cargar grupos" title="Validar PIN y cargar grupos"><span aria-hidden="true">→</span></button>
+        </div>
       </div>
       <div class="actions">
         <button id="start-session">Iniciar 60 segundos</button>
