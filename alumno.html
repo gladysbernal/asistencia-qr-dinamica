@@ -69,9 +69,11 @@
     button.disabled = true;
     account.disabled = true;
     try {
-      show('Solicitud recibida. Esperando que el docente guarde el lote…', 'warn');
+      show('Solicitud recibida. Guardando automáticamente la asistencia…', 'warn');
       for (let i = 0; i < 12; i++) {
-        await QueueClient.sleep((i === 0 ? 5000 : 8000) + Math.random() * 6000);
+        // Confirmar antes, repartiendo las consultas; luego espaciar si sigue pendiente.
+        await QueueClient.sleep(i === 0 ? 2000 + Math.random() * 4000
+          : i < 3 ? 5000 + Math.random() * 4000 : 8000 + Math.random() * 6000);
         let result;
         try {
           result = await QueueClient.request({ action: 'receipt', sessionId,
