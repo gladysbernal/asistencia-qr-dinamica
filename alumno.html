@@ -69,7 +69,7 @@
     button.disabled = true;
     account.disabled = true;
     try {
-      show('Solicitud recibida. Guardando automáticamente la asistencia…', 'warn');
+      show('Procesando tu asistencia…', '');
       for (let i = 0; i < 12; i++) {
         // Confirmar antes, repartiendo las consultas; luego espaciar si sigue pendiente.
         await QueueClient.sleep(i === 0 ? 2000 + Math.random() * 4000

@@ -188,7 +188,7 @@
       // No reiniciar los 60 segundos ni reactivar un QR antiguo.
       if (!await stopSession()) throw new Error('El cierre o guardado no quedó confirmado. Reintenta la recuperación.');
       el('recover-session').hidden = true;
-      setStatus(pendingCount ? 'Sesión recuperada; se seguirán procesando los pendientes.' : 'Sesión recuperada y lote verificado. Registro manual disponible.', pendingCount ? 'warn' : 'ok');
+      setStatus(pendingCount ? 'Sesión recuperada. Procesando asistencias…' : 'Sesión recuperada. Registro manual disponible.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus('No se pudo recuperar: ' + error.message, 'error');
       el('start-session').disabled = true;
@@ -384,7 +384,7 @@
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
-      setStatus(pendingCount ? 'Solicitud recibida; hay registros pendientes.' : 'Lote guardado y verificado.', pendingCount ? 'warn' : 'ok');
+      setStatus(pendingCount ? 'Procesando asistencia…' : 'Asistencia guardada.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus(error.message, "error");
     }
