@@ -153,6 +153,7 @@
   let savedCount = 0, pendingCount = 0;
   let closing = false;
   let starting = false;
+  let sessionClosed = false;
   async function loadGroups() {
     el('load-groups').disabled = true;
     el('course').replaceChildren();
@@ -166,6 +167,7 @@
         el('course').appendChild(option);
       }
       setStatus('Grupos cargados desde C y D. Carrera: F.', 'ok');
+      if (!sessionId && storedSession()) await recoverSession();
     } catch (error) { setStatus(error.message, 'error'); }
     finally { el('load-groups').disabled = false; }
   }
@@ -188,6 +190,7 @@
       // Validar autorización y existencia antes de adoptar la sesión.
       await api({ action: 'status', sessionId: id, adminKey: adminKey() });
       sessionId = id;
+      sessionClosed = false;
       pendingCount = Infinity;
       clearInterval(statusTimer);
       statusTimer = setInterval(refreshStatus, 2500);
@@ -273,12 +276,16 @@
       if (sessionId) {
         if (!await refreshStatus()) throw new Error('No se pudo comprobar la sesión anterior. Reintenta antes de cambiarla.');
         if (pendingCount) throw new Error('Hay solicitudes pendientes. No cambies de sesión hasta guardarlas.');
-        if (!await stopSession()) throw new Error('No se confirmó el cierre de la sesión anterior.');
+        if (!sessionClosed && !await stopSession()) throw new Error('No se confirmó el cierre de la sesión anterior.');
       }
       if (!el("course").value) throw new Error("Carga los grupos y selecciona grado y grupo.");
       const [grado, grupo] = JSON.parse(el("course").value);
+      setStatus('Preparando el QR…', '');
+      clearInterval(statusTimer);
+      statusTimer = null;
       const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
       sessionId = result.sessionId;
+      sessionClosed = false;
       try { localStorage.setItem(RECOVERY_KEY, sessionId); }
       catch (_) { setStatus('No se pudo recordar la sesión. Conserva este identificador: ' + sessionId, 'warn'); }
       secondsLeft = CONFIG.SESSION_SECONDS;
@@ -300,7 +307,10 @@
     } catch (error) {
       setStatus(error.message, "error");
       el("start-session").disabled = false;
-    } finally { starting = false; }
+    } finally {
+      starting = false;
+      if (sessionId && !statusTimer) statusTimer = setInterval(refreshStatus, 2500);
+    }
   }
 
   async function rotateQr() {
@@ -340,12 +350,16 @@
     el("stop-session").disabled = true;
     let closed = true;
     if (!CONFIG.MODO_DEMO && sessionId) {
-      try { await api({ action: "closeSession", sessionId, adminKey: adminKey() }); }
+      try {
+        if (!sessionClosed) await api({ action: "closeSession", sessionId, adminKey: adminKey() });
+        sessionClosed = true;
+      }
       catch (error) { closed = false; setStatus('No se pudo confirmar el cierre: ' + error.message, 'error'); }
     }
     el("session-label").textContent = sessionId ? `Registro manual disponible: ${sessionId}` : "Sin sesión activa.";
     const verified = await refreshStatus();
     closing = false;
+    if (closed && verified) el('recover-session').hidden = true;
     return closed && verified;
   }
 
@@ -466,7 +480,7 @@
     el('recover-session').hidden = false;
     el('start-session').disabled = true;
     el('session-label').textContent = 'Sesión anterior pendiente de recuperación: ' + storedSession();
-    setStatus('Escribe la clave del proyecto y recupera la sesión. No se guarda la clave en el navegador.', 'warn');
+    setStatus('Escribe el PIN y pulsa la flecha para cargar los grupos y recuperar la sesión anterior.', 'warn');
   }
   el("stop-session").addEventListener("click", stopSession);
   el("start-camera").addEventListener("click", startCamera);
