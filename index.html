@@ -151,6 +151,7 @@
   let lastReadAt = 0;
   let refreshPromise = null;
   let savedCount = 0, pendingCount = 0;
+  let confirmedCodes = new Set();
   let closing = false;
   let starting = false;
   let sessionClosed = false;
@@ -285,6 +286,7 @@
       statusTimer = null;
       const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
       sessionId = result.sessionId;
+      confirmedCodes = new Set();
       sessionClosed = false;
       try { localStorage.setItem(RECOVERY_KEY, sessionId); }
       catch (_) { setStatus('No se pudo recordar la sesión. Conserva este identificador: ' + sessionId, 'warn'); }
@@ -377,6 +379,7 @@
       const result = await api({ action: "status", sessionId: id, adminKey: adminKey() });
       if (id !== sessionId) return;
       savedCount = result.saved;
+      confirmedCodes = new Set(result.records.map(r => String(r.codigo).trim()));
       pendingCount = result.pending.length;
       el("count").textContent = result.records.length;
       el('queue-summary').textContent = `${result.received} recibidas · ${savedCount} guardadas · ${pendingCount} pendientes`;
@@ -395,6 +398,7 @@
     code = String(code || "").trim();
     if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
     if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
+    if (confirmedCodes.has(code)) return setStatus("Este alumno ya está registrado en esta sesión.", "ok");
     const now = Date.now();
     if (code === lastCode && now - lastReadAt < 2500) return;
     lastCode = code;
@@ -402,6 +406,7 @@
     try {
       setStatus("Verificando…", "");
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
+      if (result.duplicate) return setStatus("Este alumno ya está registrado en esta sesión.", "ok");
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
       setStatus(pendingCount ? 'Procesando asistencia…' : 'Asistencia guardada.', pendingCount ? 'warn' : 'ok');
