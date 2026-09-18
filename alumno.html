@@ -84,7 +84,10 @@
           continue;
         }
         if (result.saved) {
-          show('✓ Asistencia guardada y confirmada.', 'ok');
+          const confirmedKey = receiptKey(receipt.codigo) + ':confirmada';
+          const alreadyConfirmed = localStorage.getItem(confirmedKey) === '1';
+          localStorage.setItem(confirmedKey, '1');
+          show(alreadyConfirmed ? '✓ Ya estás registrado en esta sesión. No se duplicó tu asistencia.' : '✓ Asistencia guardada y confirmada.', 'ok');
           chip.textContent = 'VERSIÓN OFICIAL · Guardada';
           button.textContent = 'Asistencia guardada';
           return;
