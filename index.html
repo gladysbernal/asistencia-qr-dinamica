@@ -152,6 +152,7 @@
   let refreshPromise = null;
   let savedCount = 0, pendingCount = 0;
   let confirmedCodes = new Set();
+  let confirmedNames = new Map();
   let alreadyRegisteredCodes = new Set();
   let closing = false;
   let starting = false;
@@ -288,6 +289,7 @@
       const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
       sessionId = result.sessionId;
       confirmedCodes = new Set();
+      confirmedNames = new Map();
       alreadyRegisteredCodes = new Set();
       sessionClosed = false;
       try { localStorage.setItem(RECOVERY_KEY, sessionId); }
@@ -382,6 +384,7 @@
       if (id !== sessionId) return;
       savedCount = result.saved;
       confirmedCodes = new Set(result.records.map(r => String(r.codigo).trim()));
+      confirmedNames = new Map(result.records.map(r => [String(r.codigo).trim(), r.nombre || r.codigo]));
       alreadyRegisteredCodes = new Set(result.records.filter(r => r.alreadyRegistered).map(r => String(r.codigo).trim()));
       pendingCount = result.pending.length;
       el("count").textContent = result.records.length;
@@ -401,7 +404,7 @@
     code = String(code || "").trim();
     if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
     if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
-    if (confirmedCodes.has(code)) return setStatus("Este alumno ya está registrado en esta sesión.", "ok");
+    if (confirmedCodes.has(code)) return setStatus((confirmedNames.get(code) || code) + " ya registró su asistencia.", "ok");
     const now = Date.now();
     if (code === lastCode && now - lastReadAt < 2500) return;
     lastCode = code;
@@ -411,8 +414,9 @@
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
-      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus("Este alumno ya tiene registrada su asistencia. No se duplicó.", "ok");
-      setStatus(pendingCount ? 'Procesando asistencia…' : 'Asistencia guardada.', pendingCount ? 'warn' : 'ok');
+      const studentName = result.nombre || confirmedNames.get(code) || code;
+      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus(studentName + " ya registró su asistencia.", "ok");
+      setStatus(pendingCount ? 'Procesando asistencia de ' + studentName + '…' : studentName + ' registró su asistencia.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus(error.message, "error");
     }
