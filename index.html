@@ -152,6 +152,7 @@
   let refreshPromise = null;
   let savedCount = 0, pendingCount = 0;
   let confirmedCodes = new Set();
+  let alreadyRegisteredCodes = new Set();
   let closing = false;
   let starting = false;
   let sessionClosed = false;
@@ -287,6 +288,7 @@
       const result = await api({ action: "createSession", grado, grupo, adminKey: adminKey() });
       sessionId = result.sessionId;
       confirmedCodes = new Set();
+      alreadyRegisteredCodes = new Set();
       sessionClosed = false;
       try { localStorage.setItem(RECOVERY_KEY, sessionId); }
       catch (_) { setStatus('No se pudo recordar la sesión. Conserva este identificador: ' + sessionId, 'warn'); }
@@ -380,6 +382,7 @@
       if (id !== sessionId) return;
       savedCount = result.saved;
       confirmedCodes = new Set(result.records.map(r => String(r.codigo).trim()));
+      alreadyRegisteredCodes = new Set(result.records.filter(r => r.alreadyRegistered).map(r => String(r.codigo).trim()));
       pendingCount = result.pending.length;
       el("count").textContent = result.records.length;
       el('queue-summary').textContent = `${result.received} recibidas · ${savedCount} guardadas · ${pendingCount} pendientes`;
@@ -406,9 +409,9 @@
     try {
       setStatus("Verificando…", "");
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
-      if (result.duplicate) return setStatus("Este alumno ya está registrado en esta sesión.", "ok");
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
+      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus("Este alumno ya tiene registrada su asistencia. No se duplicó.", "ok");
       setStatus(pendingCount ? 'Procesando asistencia…' : 'Asistencia guardada.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus(error.message, "error");

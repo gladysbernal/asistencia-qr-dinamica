@@ -85,7 +85,7 @@
         }
         if (result.saved) {
           const confirmedKey = receiptKey(receipt.codigo) + ':confirmada';
-          const alreadyConfirmed = localStorage.getItem(confirmedKey) === '1';
+          const alreadyConfirmed = result.alreadyRegistered || receipt.duplicate || localStorage.getItem(confirmedKey) === '1';
           localStorage.setItem(confirmedKey, '1');
           show(alreadyConfirmed ? '✓ Ya estás registrado en esta sesión. No se duplicó tu asistencia.' : '✓ Asistencia guardada y confirmada.', 'ok');
           chip.textContent = 'VERSIÓN OFICIAL · Guardada';
@@ -117,7 +117,7 @@
       const result = await QueueClient.request({ action:'register', sessionId, codigo,
         slot:query.get('slot'), signature:query.get('signature') }, 3);
       if (!result.receiptSignature || result.saved !== false) throw new Error('La API no respondió con un comprobante de recepción válido.');
-      const receipt = { codigo, receiptSignature:result.receiptSignature };
+      const receipt = { codigo, receiptSignature:result.receiptSignature, duplicate: result.duplicate === true };
       sessionStorage.setItem(receiptKey(codigo), JSON.stringify(receipt));
       localStorage.setItem('asistencia-oficial-cola-v2-cuenta', codigo);
       await confirm(receipt);
