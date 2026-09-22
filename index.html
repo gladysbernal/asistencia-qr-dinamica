@@ -120,14 +120,15 @@
   </div>
 
   <section class="card records-card">
+    <div class="card-title"><div class="icon">✓</div><div><h2>Últimos 5 registros</h2><span class="muted">Asistencias recientes de esta sesión</span></div></div>
+    <ul id="records"><li>Todavía no hay registros.</li></ul>
+  </section>
+  <details class="card records-card">
+    <summary><strong>Herramientas avanzadas</strong></summary>
     <h2>Supervisión del sistema</h2>
     <button id="maintenance-check" class="secondary">Revisar mantenimiento (sin borrar)</button>
     <p id="maintenance-status" role="status" aria-live="polite">Informe pendiente de consulta.</p>
-  </section>
-  <section class="card records-card">
-    <div class="card-title"><div class="icon">✓</div><div><h2>Últimos registros</h2><span class="muted">Asistencias de esta sesión</span></div></div>
-    <ul id="records"><li>Todavía no hay registros.</li></ul>
-  </section>
+  </details>
 </main>
 
 <script src="config.js"></script>
@@ -390,7 +391,7 @@
       el("count").textContent = result.records.length;
       el('queue-summary').textContent = `${result.received} recibidas · ${savedCount} guardadas · ${pendingCount} pendientes`;
       el("records").innerHTML = result.records.length
-        ? result.records.slice().reverse().map((r) => `<li><strong>${escapeHtml(r.nombre || r.codigo)}</strong> — Guardada ✓</li>`).join("")
+        ? result.records.slice(-5).reverse().map((r) => `<li><strong>${escapeHtml(r.nombre || r.codigo)}</strong> — Guardada ✓</li>`).join("")
         : "<li>Todavía no hay registros.</li>";
       return true;
     } catch (error) {
