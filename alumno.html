@@ -28,7 +28,7 @@
     button:disabled { opacity:.5; }
     #status { min-height:30px; margin:18px 0 0; padding:12px 14px; border-radius:13px; font-weight:800; background:#f5f8fd; }
     #status:empty { display:none; }
-    .ok { color:#08783e; background:#eaf9f1!important; } .warn { color:#9a5a00; background:#fff7e4!important; } .error { color:#b31e2d; background:#fff0f2!important; }
+    .ok { color:#08783e; background:#eaf9f1!important; } .already { color:#0756d8; background:#e8f1ff!important; border-color:#bcd3fa!important; } .warn { color:#9a5a00; background:#fff7e4!important; } .error { color:#b31e2d; background:#fff0f2!important; }
     .privacy { text-align:center; color:#cfe0ff; font-size:.78rem; margin-top:17px; }
   </style>
 </head>
@@ -88,7 +88,7 @@
           const alreadyConfirmed = result.alreadyRegistered || receipt.duplicate || localStorage.getItem(confirmedKey) === '1';
           localStorage.setItem(confirmedKey, '1');
           const studentName = receipt.nombre || receipt.codigo;
-          show('✓ ' + studentName + (alreadyConfirmed ? ' ya registró su asistencia.' : ' registró su asistencia.'), 'ok');
+          show('✓ ' + studentName + (alreadyConfirmed ? ' ya registró su asistencia.' : ' registró su asistencia.'), alreadyConfirmed ? 'already' : 'ok');
           chip.textContent = 'VERSIÓN OFICIAL · Guardada';
           button.textContent = 'Asistencia guardada';
           return;

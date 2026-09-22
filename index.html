@@ -49,7 +49,7 @@
     .qr-guide { width:min(86vw,310px); aspect-ratio:1; border:3px solid #4fe39b; border-radius:20px; display:grid; place-items:center; box-shadow:0 0 0 999px #00122920; }
     .bar-guide { width:98%; height:42%; border:3px solid #43ccea; border-radius:10px; box-shadow:0 0 18px #43ccea55; }
     .status { min-height:28px; font-weight:750; margin:12px 0 0; padding:11px 13px; border-radius:12px; background:#f5f8fd; }
-    .ok { color:#08783e; background:#eaf9f1; } .warn { color:#9a5a00; background:#fff7e4; } .error { color:#b31e2d; background:#fff0f2; }
+    .ok { color:#08783e; background:#eaf9f1; } .already { color:#0756d8; background:#e8f1ff; border:1px solid #bcd3fa; } .warn { color:#9a5a00; background:#fff7e4; } .error { color:#b31e2d; background:#fff0f2; }
     .demo { background:#fff4cc; border:1px solid #e2bd35; padding:9px; border-radius:8px; }
     .field { display:grid; gap:0; margin-top:14px; }
     .pin-control { display:flex; align-items:center; gap:8px; }
@@ -410,7 +410,7 @@
     code = String(code || "").trim();
     if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
     if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
-    if (confirmedCodes.has(code)) return setStatus((confirmedNames.get(code) || code) + " ya registró su asistencia.", "ok");
+    if (confirmedCodes.has(code)) return setStatus("✓ " + (confirmedNames.get(code) || code) + " ya registró su asistencia.", "already");
     const now = Date.now();
     if (code === lastCode && now - lastReadAt < 2500) return;
     lastCode = code;
@@ -421,8 +421,8 @@
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
       const studentName = result.nombre || confirmedNames.get(code) || code;
-      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus(studentName + " ya registró su asistencia.", "ok");
-      setStatus(pendingCount ? 'Procesando asistencia de ' + studentName + '…' : studentName + ' registró su asistencia.', pendingCount ? 'warn' : 'ok');
+      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus("✓ " + studentName + " ya registró su asistencia.", "already");
+      setStatus(pendingCount ? 'Procesando asistencia de ' + studentName + '…' : "✓ " + studentName + ' registró su asistencia.', pendingCount ? 'warn' : 'ok');
     } catch (error) {
       setStatus(error.message, "error");
     }
