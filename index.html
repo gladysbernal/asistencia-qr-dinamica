@@ -202,7 +202,7 @@
       sessionClosed = false;
       pendingCount = Infinity;
       clearInterval(statusTimer);
-      statusTimer = setInterval(refreshStatus, 2500);
+      statusTimer = setInterval(refreshStatus, 6000);
       // No reiniciar los 60 segundos ni reactivar un QR antiguo.
       if (!await stopSession()) throw new Error('El cierre o guardado no quedó confirmado. Reintenta la recuperación.');
       el('recover-session').hidden = true;
@@ -314,14 +314,14 @@
       }, 1000);
       qrTimer = setInterval(() => rotateQr().catch(error => setStatus('No se pudo renovar el QR: ' + error.message, 'error')), CONFIG.QR_ROTATION_SECONDS * 1000);
       clearInterval(statusTimer);
-      statusTimer = setInterval(refreshStatus, 2500);
+      statusTimer = setInterval(refreshStatus, 6000);
       await refreshStatus();
     } catch (error) {
       setStatus(error.message, "error");
       el("start-session").disabled = false;
     } finally {
       starting = false;
-      if (sessionId && !statusTimer) statusTimer = setInterval(refreshStatus, 2500);
+      if (sessionId && !statusTimer) statusTimer = setInterval(refreshStatus, 6000);
     }
   }
 
@@ -451,12 +451,10 @@
       await scanner.start(
         preferred.id,
         {
-          fps: 20,
+          fps: 24,
           aspectRatio: 1.777778,
-          qrbox: (w, h) => ({
-            width: Math.floor(w * .96),
-            height: Math.min(Math.floor(h * .62), 260)
-          })
+          // Analizar el cuadro completo: la guía rectangular dificultaba los QR cuadrados.
+          qrbox: undefined
         },
         (text, result) => registerManual(text, result?.result?.format?.formatName || "DESCONOCIDO"),
         () => {}
