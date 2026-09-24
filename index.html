@@ -430,7 +430,7 @@
       if (!await refreshStatus()) return;
       const studentName = result.nombre || confirmedNames.get(code) || code;
       if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus("✓ " + studentName + " ya registró su asistencia.", "already");
-      setStatus(pendingCount ? 'Procesando asistencia de ' + studentName + '…' : "✓ " + studentName + ' registró su asistencia.', pendingCount ? 'warn' : 'ok');
+      setStatus(confirmedCodes.has(code) ? "✓ " + studentName + ' registró su asistencia.' : 'Procesando asistencia de ' + studentName + '…', confirmedCodes.has(code) ? 'ok' : 'warn');
     } catch (error) {
       setStatus(error.message, "error");
     }
