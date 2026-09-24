@@ -418,7 +418,11 @@
     if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
     if (activeCourseKey && el("course").value !== activeCourseKey) return setStatus("Espera mientras se activa el grupo seleccionado.", "warn");
     if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
-    if (confirmedCodes.has(code)) return setStatus("✓ " + (confirmedNames.get(code) || code) + " ya registró su asistencia.", "already");
+    if (confirmedCodes.has(code)) {
+      setStatus("✓ " + (confirmedNames.get(code) || code) + " ya registró su asistencia.", "already");
+      if (format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
+      return;
+    }
     const now = Date.now();
     if (code === lastCode && now - lastReadAt < 2500) return;
     lastCode = code;
@@ -429,8 +433,13 @@
       setStatus(result.message, "warn");
       if (!await refreshStatus()) return;
       const studentName = result.nombre || confirmedNames.get(code) || code;
-      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) return setStatus("✓ " + studentName + " ya registró su asistencia.", "already");
+      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) {
+        setStatus("✓ " + studentName + " ya registró su asistencia.", "already");
+        if (format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
+        return;
+      }
       setStatus(confirmedCodes.has(code) ? "✓ " + studentName + ' registró su asistencia.' : 'Procesando asistencia de ' + studentName + '…', confirmedCodes.has(code) ? 'ok' : 'warn');
+      if (confirmedCodes.has(code) && format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
     } catch (error) {
       setStatus(error.message, "error");
     }
