@@ -163,6 +163,7 @@
   let closing = false;
   let starting = false;
   let sessionClosed = false;
+  let activeCourseKey = "";
   async function loadGroups() {
     el('load-groups').disabled = true;
     el('course').replaceChildren();
@@ -197,9 +198,14 @@
     el('recover-session').disabled = true;
     try {
       // Validar autorización y existencia antes de adoptar la sesión.
-      await api({ action: 'status', sessionId: id, adminKey: adminKey() });
+      const recovered = await api({ action: 'status', sessionId: id, adminKey: adminKey() });
       sessionId = id;
       sessionClosed = false;
+      if (recovered.grado != null && recovered.grupo != null) {
+        const recoveredValue = JSON.stringify([recovered.grado, recovered.grupo]);
+        if (el('course').options && [...el('course').options].some(option => option.value === recoveredValue)) el('course').value = recoveredValue;
+        activeCourseKey = recoveredValue;
+      }
       pendingCount = Infinity;
       clearInterval(statusTimer);
       statusTimer = setInterval(refreshStatus, 6000);
@@ -298,6 +304,7 @@
       confirmedNames = new Map();
       alreadyRegisteredCodes = new Set();
       sessionClosed = false;
+      activeCourseKey = el("course").value;
       try { localStorage.setItem(RECOVERY_KEY, sessionId); }
       catch (_) { setStatus('No se pudo recordar la sesión. Conserva este identificador: ' + sessionId, 'warn'); }
       secondsLeft = CONFIG.SESSION_SECONDS;
@@ -409,6 +416,7 @@
   async function registerManual(code, format = "SIMULADO") {
     code = String(code || "").trim();
     if (!sessionId) return setStatus("Primero crea una sesión.", "warn");
+    if (activeCourseKey && el("course").value !== activeCourseKey) return setStatus("Espera mientras se activa el grupo seleccionado.", "warn");
     if (!code) return setStatus("No se recibió un número de cuenta.", "warn");
     if (confirmedCodes.has(code)) return setStatus("✓ " + (confirmedNames.get(code) || code) + " ya registró su asistencia.", "already");
     const now = Date.now();
@@ -489,6 +497,11 @@
 
   el("start-session").addEventListener("click", startSession);
   el('load-groups').addEventListener('click', loadGroups);
+  el('course').addEventListener('change', async () => {
+    if (!sessionId || !activeCourseKey || !el('course').value || el('course').value === activeCourseKey) return;
+    setStatus('Cambiando al grupo seleccionado…', 'warn');
+    await startSession();
+  });
   el('admin-key').addEventListener('input', () => el('course').replaceChildren());
   el('maintenance-check').addEventListener('click', checkMaintenance);
   el('recover-session').addEventListener('click', recoverSession);
