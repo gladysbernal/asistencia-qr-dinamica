@@ -392,7 +392,13 @@
   async function refreshStatusOnce() {
     const id = sessionId;
     try {
-      await api({ action: 'processBatch', sessionId: id, adminKey: adminKey() });
+      try {
+        await api({ action: 'processBatch', sessionId: id, adminKey: adminKey() });
+      } catch (error) {
+        // Otro dispositivo o una consulta automática puede estar guardando el mismo lote.
+        // En ese caso consultar el estado en vez de mostrar un error técnico al docente.
+        if (!/lote en proceso/i.test(error.message || '')) throw error;
+      }
       const result = await api({ action: "status", sessionId: id, adminKey: adminKey() });
       if (id !== sessionId) return;
       savedCount = result.saved;
@@ -431,20 +437,32 @@
       setStatus("Verificando…", "");
       const result = await api({ action: "manual", sessionId, codigo: code, format, adminKey: adminKey() });
       setStatus(result.message, "warn");
-      if (!await refreshStatus()) return;
-      // Si coincidió con una consulta automática, releer hasta confirmar esta cuenta.
-      for (let attempt = 0; attempt < 3 && !confirmedCodes.has(code); attempt++) {
-        await QueueClient.sleep(1200);
-        if (!await refreshStatus()) return;
+      let receipt = null;
+      // Confirmar esta cuenta por su comprobante, sin depender del estado completo del lote.
+      for (let attempt = 0; attempt < 8; attempt++) {
+        try { await api({ action: 'processBatch', sessionId, adminKey: adminKey() }); }
+        catch (error) { if (!/lote en proceso/i.test(error.message || '')) throw error; }
+        if (result.receiptSignature) {
+          receipt = await api({ action: 'receipt', sessionId, codigo: code, receiptSignature: result.receiptSignature });
+          if (receipt.saved) break;
+        }
+        await QueueClient.sleep(900);
       }
       const studentName = result.nombre || confirmedNames.get(code) || code;
-      if (confirmedCodes.has(code) && (result.duplicate || alreadyRegisteredCodes.has(code))) {
+      if (receipt?.saved) {
+        confirmedCodes.add(code);
+        confirmedNames.set(code, studentName);
+        if (receipt.alreadyRegistered) alreadyRegisteredCodes.add(code);
+      }
+      if (receipt?.saved && (result.duplicate || receipt.alreadyRegistered)) {
         setStatus("✓ " + studentName + " ya registró su asistencia.", "already");
         if (format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
+        refreshStatus();
         return;
       }
-      setStatus(confirmedCodes.has(code) ? "✓ " + studentName + ' registró su asistencia.' : 'Procesando asistencia de ' + studentName + '…', confirmedCodes.has(code) ? 'ok' : 'warn');
-      if (confirmedCodes.has(code) && format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
+      setStatus(receipt?.saved ? "✓ " + studentName + ' registró su asistencia.' : 'Solicitud recibida de ' + studentName + '. La confirmación continúa en segundo plano.', receipt?.saved ? 'ok' : 'warn');
+      if (format === "SIMULADO") { el("demo-code").value = ""; el("demo-code").focus(); }
+      refreshStatus();
     } catch (error) {
       setStatus(error.message, "error");
     }
